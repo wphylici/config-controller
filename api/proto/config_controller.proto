@@ -10,7 +10,7 @@ service ConfigController {
 }
 
 message CreateRequest {
-  bytes dataConf = 1;
+  string confData = 1;
 }
 
 message CreateResponse {
@@ -19,16 +19,16 @@ message CreateResponse {
 
 message ReadRequest {
   string serviceName = 1;
+  uint32 version = 2;
 }
 
 message ReadResponse {
   string resp = 1;
-  bytes dataConf = 2;
+  string confData = 2;
 }
 
 message UpdateRequest {
-  string serviceName = 1;
-  string newDataConf = 2;
+  string confData = 1;
 }
 
 message UpdateResponse {

@@ -2,19 +2,20 @@ package app
 
 import (
 	"github.com/wphylici/contest-cloud/internal/transport/grpc/server"
-	"log"
 	"net"
 )
 
-func StartGRPCServer(config *server.Config) {
+func StartGRPCServer(config *server.Config) error {
 	s := server.NewGRPCServer()
 
 	l, err := net.Listen(config.Network, config.BindAddr)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 
 	if err = s.Serve(l); err != nil {
-		log.Fatal(err)
+		return err
 	}
+
+	return nil
 }
