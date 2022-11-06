@@ -74,5 +74,13 @@ func (s *gRPCServer) Update(ctx context.Context, req *pb.UpdateRequest) (*pb.Upd
 }
 
 func (s *gRPCServer) Delete(ctx context.Context, req *pb.DeleteRequest) (*pb.DeleteResponse, error) {
+	screp := database.Psql.ServiceConfig()
+	_, err := screp.Delete(&models.ServiceConfig{
+		Service: req.ServiceName,
+		Version: req.Version,
+	})
+	if err != nil {
+		return nil, err
+	}
 	return &pb.DeleteResponse{Resp: "Delete"}, nil
 }

@@ -20,6 +20,7 @@ func New(config *Config) *PostgreSQL {
 }
 
 func (p *PostgreSQL) Open() error {
+
 	db, err := sql.Open("postgres", p.config.DatabaseURL)
 	if err != nil {
 		return err

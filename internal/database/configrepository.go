@@ -12,11 +12,28 @@ type ServiceConfigRepository struct {
 	psql *PostgreSQL
 }
 
+func getConfigForServiceNotFoundError(serviceName string) string {
+	return fmt.Sprintf("config for service '%s' not found", serviceName)
+}
+
+func getConfigVersionNotFoundError(serviceName string, version uint32) string {
+	return fmt.Sprintf("config version '%d' for '%s' service not found", version, serviceName)
+}
+
+func getConfigAlreadyBeenCreatedError(serviceName string) string {
+	return fmt.Sprintf("config for service '%s' has already been created", serviceName)
+}
+
+func getNoChangeInConfigError() string {
+	return fmt.Sprintf("no change in config")
+}
+
 func (r *ServiceConfigRepository) Create(c *models.ServiceConfig) (*models.ServiceConfig, error) {
 	var isServiceExist bool
-	checkServiceExistQuery := fmt.Sprintf("IF EXISTS(SELECT service FROM configs WHERE service = '%s')", c.Service)
 
-	if err := r.psql.db.QueryRow(checkServiceExistQuery).Scan(&isServiceExist); err != nil {
+	if err := r.psql.db.QueryRow("SELECT EXISTS(SELECT service FROM configs WHERE service=$1)",
+		c.Service,
+	).Scan(&isServiceExist); err != nil {
 		return nil, err
 	} else if !isServiceExist {
 		if err = r.psql.db.QueryRow(
@@ -26,7 +43,7 @@ func (r *ServiceConfigRepository) Create(c *models.ServiceConfig) (*models.Servi
 			return nil, err
 		}
 	} else {
-		return nil, fmt.Errorf("config for service '%s' has already been created", c.Service)
+		return nil, fmt.Errorf(getConfigAlreadyBeenCreatedError(c.Service))
 	}
 
 	configData, err := json.Marshal(c.Data)
@@ -45,25 +62,27 @@ func (r *ServiceConfigRepository) Create(c *models.ServiceConfig) (*models.Servi
 }
 
 func (r *ServiceConfigRepository) Read(c *models.ServiceConfig) (*models.ServiceConfig, error) {
-	checkServiceExistQuery := fmt.Sprintf("SELECT id FROM configs WHERE service = '%s'", c.Service)
-	if err := r.psql.db.QueryRow(checkServiceExistQuery).Scan(&c.ID); err == sql.ErrNoRows {
-		return nil, fmt.Errorf("config for service '%s' not found", c.Service)
+	if err := r.psql.db.QueryRow("SELECT id FROM configs WHERE service=$1",
+		c.Service,
+	).Scan(&c.ID); err == sql.ErrNoRows {
+		return nil, fmt.Errorf(getConfigForServiceNotFoundError(c.Service))
 	} else if err != nil {
 		return nil, err
 	}
 
 	var configData []byte
 	if c.Version == 0 {
-		lastRecordQuery := fmt.Sprintf("SELECT data FROM data_configs WHERE config_id = %d ORDER BY version DESC LIMIT 1", c.ID)
-		if err := r.psql.db.QueryRow(
-			lastRecordQuery,
+		if err := r.psql.db.QueryRow("SELECT data FROM data_configs WHERE config_id=$1 ORDER BY version DESC LIMIT 1",
+			c.ID,
 		).Scan(&configData); err != nil {
 			return nil, err
 		}
 	} else {
-		configDataQuery := fmt.Sprintf("SELECT data FROM data_configs WHERE (config_id = %d) AND (version = %d)", c.ID, c.Version)
-		if err := r.psql.db.QueryRow(configDataQuery).Scan(&configData); err == sql.ErrNoRows {
-			return nil, fmt.Errorf("version %d configuration for '%s' service not found", c.Version, c.Service)
+		if err := r.psql.db.QueryRow("SELECT data FROM data_configs WHERE (config_id=$1) AND (version=$2)",
+			c.ID,
+			c.Service,
+		).Scan(&configData); err == sql.ErrNoRows {
+			return nil, fmt.Errorf(getConfigVersionNotFoundError(c.Service, c.Version))
 		} else if err != nil {
 			return nil, err
 		}
@@ -79,23 +98,24 @@ func (r *ServiceConfigRepository) Read(c *models.ServiceConfig) (*models.Service
 
 func (r *ServiceConfigRepository) Update(c *models.ServiceConfig) (*models.ServiceConfig, error) {
 	var isServiceExist bool
-	checkServiceExistQuery := fmt.Sprintf("SELECT EXISTS(SELECT service FROM configs WHERE service = '%s')", c.Service)
 
-	if err := r.psql.db.QueryRow(checkServiceExistQuery).Scan(&isServiceExist); err != nil {
+	if err := r.psql.db.QueryRow("SELECT EXISTS(SELECT service FROM configs WHERE service=$1)",
+		c.Service,
+	).Scan(&isServiceExist); err != nil {
 		return nil, err
 	} else if !isServiceExist {
-		return nil, fmt.Errorf("config for service '%s' not found", c.Service)
+		return nil, fmt.Errorf(getConfigForServiceNotFoundError(c.Service))
 	} else {
-		checkServiceIDQuery := fmt.Sprintf("SELECT id FROM configs WHERE service = '%s'", c.Service)
-		if err = r.psql.db.QueryRow(checkServiceIDQuery).Scan(&c.ID); err != nil {
+		if err = r.psql.db.QueryRow("SELECT id FROM configs WHERE service=$1",
+			c.Service,
+		).Scan(&c.ID); err != nil {
 			return nil, err
 		}
 	}
 
 	var lastConfigData []byte
-	lastRecordQuery := fmt.Sprintf("SELECT version, data FROM data_configs WHERE config_id = %d ORDER BY version DESC LIMIT 1", c.ID)
-	if err := r.psql.db.QueryRow(
-		lastRecordQuery,
+	if err := r.psql.db.QueryRow("SELECT version, data FROM data_configs WHERE config_id=$1 ORDER BY version DESC LIMIT 1",
+		c.ID,
 	).Scan(&c.Version, &lastConfigData); err != nil {
 		return nil, err
 	}
@@ -114,12 +134,43 @@ func (r *ServiceConfigRepository) Update(c *models.ServiceConfig) (*models.Servi
 			configData,
 		)
 	} else {
-		return nil, fmt.Errorf("no change in config")
+		return nil, fmt.Errorf(getNoChangeInConfigError())
 	}
 
 	return c, nil
 }
 
 func (r *ServiceConfigRepository) Delete(c *models.ServiceConfig) (*models.ServiceConfig, error) {
+	if err := r.psql.db.QueryRow("SELECT id FROM configs WHERE service=$1",
+		c.Service,
+	).Scan(&c.ID); err == sql.ErrNoRows {
+		return nil, fmt.Errorf(getConfigForServiceNotFoundError(c.Service))
+	} else if err != nil {
+		return nil, err
+	}
+
+	if c.Version == 0 {
+		if row := r.psql.db.QueryRow("DELETE FROM data_configs WHERE config_id=$1",
+			c.ID,
+		); row.Err() != nil {
+			return nil, row.Err()
+		}
+
+		if row := r.psql.db.QueryRow("DELETE FROM configs WHERE id=$1",
+			c.ID,
+		); row.Err() != nil {
+			return nil, row.Err()
+		}
+	} else {
+		if err := r.psql.db.QueryRow("DELETE FROM data_configs WHERE (config_id=$1) AND (version=$2) RETURNING config_id",
+			c.ID,
+			c.Version,
+		).Scan(&c.ID); err == sql.ErrNoRows {
+			return nil, fmt.Errorf(getConfigVersionNotFoundError(c.Service, c.Version))
+		} else if err != nil {
+			return nil, err
+		}
+	}
+
 	return c, nil
 }

@@ -37,6 +37,7 @@ message UpdateResponse {
 
 message DeleteRequest {
   string serviceName = 1;
+  uint32 version = 2;
 }
 
 message DeleteResponse {
