@@ -12,14 +12,20 @@ services:
       - '5432:5432'
     volumes:
       - db:/var/lib/postgresql/data
-      - ./internal/database/scripts/initdb.sql:/docker-entrypoint-initdb.d/initdb.sql
+      - ../internal/database/scripts/initdb.sql:/docker-entrypoint-initdb.d/initdb.sql
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://postgres-container:5432" ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
 
   config-controller:
     container_name: config-controller-container
     depends_on:
       - db
     build:
-      dockerfile: config-controller.Dockerfile
+      context: ../
+      dockerfile: ./docker/config-controller.Dockerfile
     env_file:
       - svc-variables.env
     restart: always

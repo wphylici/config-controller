@@ -80,7 +80,7 @@ func (r *ServiceConfigRepository) Read(c *models.ServiceConfig) (*models.Service
 	} else {
 		if err := r.psql.db.QueryRow("SELECT data FROM data_configs WHERE (config_id=$1) AND (version=$2)",
 			c.ID,
-			c.Service,
+			c.Version,
 		).Scan(&configData); err == sql.ErrNoRows {
 			return nil, fmt.Errorf(getConfigVersionNotFoundError(c.Service, c.Version))
 		} else if err != nil {

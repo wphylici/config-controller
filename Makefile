@@ -12,10 +12,17 @@ init-database:
 	psql -U $(SQL_USER) -f $(SQL_SCRIPT_PATH)
 
 docker-build:
-	sudo docker build --tag config-controller:$(IMAGE_TAG) .
+	sudo docker build --tag config-controller:$(IMAGE_TAG) -f ./docker/config-controller.Dockerfile .
+
 
 docker-compose-up:
-	docker-compose up
+	docker-compose -f ./docker/docker-compose.yaml up
 
 docker-compose-down-all:
-	docker-compose --rmi -v
+	docker-compose -f ./docker/docker-compose.yaml down -v --rmi all
+
+docker-compose-start:
+	docker-compose -f ./docker/docker-compose.yaml start
+
+docker-compose-stop:
+	docker-compose -f ./docker/docker-compose.yaml stop
