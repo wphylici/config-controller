@@ -70,7 +70,7 @@ func (s *gRPCServer) Update(ctx context.Context, req *pb.UpdateRequest) (*pb.Upd
 		return nil, err
 	}
 
-	return &pb.UpdateResponse{Resp: "Update"}, nil
+	return &pb.UpdateResponse{Resp: "Success"}, nil
 }
 
 func (s *gRPCServer) Delete(ctx context.Context, req *pb.DeleteRequest) (*pb.DeleteResponse, error) {
@@ -82,5 +82,5 @@ func (s *gRPCServer) Delete(ctx context.Context, req *pb.DeleteRequest) (*pb.Del
 	if err != nil {
 		return nil, err
 	}
-	return &pb.DeleteResponse{Resp: "Delete"}, nil
+	return &pb.DeleteResponse{Resp: "Success"}, nil
 }
