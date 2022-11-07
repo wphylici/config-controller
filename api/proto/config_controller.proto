@@ -1,0 +1,45 @@
+syntax = "proto3";
+
+option go_package = "./pb";
+
+service ConfigController {
+  rpc Create(CreateRequest) returns (CreateResponse) {}
+  rpc Read(ReadRequest) returns (ReadResponse) {}
+  rpc Update(UpdateRequest) returns (UpdateResponse) {}
+  rpc Delete(DeleteRequest) returns (DeleteResponse) {}
+}
+
+message CreateRequest {
+  string confData = 1;
+}
+
+message CreateResponse {
+  string resp = 1;
+}
+
+message ReadRequest {
+  string serviceName = 1;
+  uint32 version = 2;
+}
+
+message ReadResponse {
+  string resp = 1;
+  string confData = 2;
+}
+
+message UpdateRequest {
+  string confData = 1;
+}
+
+message UpdateResponse {
+  string resp = 1;
+}
+
+message DeleteRequest {
+  string serviceName = 1;
+  uint32 version = 2;
+}
+
+message DeleteResponse {
+  string resp = 1;
+}
