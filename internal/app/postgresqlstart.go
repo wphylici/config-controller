@@ -1,6 +1,8 @@
 package app
 
-import "github.com/wphylici/contest-cloud/internal/database"
+import (
+	"github.com/wphylici/contest-cloud/internal/database"
+)
 
 func StartPostgreSQL(config *database.Config) error {
 
