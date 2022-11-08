@@ -86,9 +86,9 @@ func (r *ServiceConfigRepository) Read(c *models.ServiceConfig) (*models.Service
 
 	var configData []byte
 	if c.Version == 0 {
-		if err := r.psql.db.QueryRow("SELECT data FROM data_configs WHERE config_id=$1 ORDER BY version DESC LIMIT 1",
+		if err := r.psql.db.QueryRow("SELECT data, version FROM data_configs WHERE config_id=$1 ORDER BY version DESC LIMIT 1",
 			c.ID,
-		).Scan(&configData); err != nil {
+		).Scan(&configData, &c.Version); err != nil {
 			return nil, err
 		}
 	} else {
