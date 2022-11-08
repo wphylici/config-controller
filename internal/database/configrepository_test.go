@@ -11,7 +11,6 @@ import (
 )
 
 func TestCreate(t *testing.T) {
-
 	dbmock, mock, err := sqlmock.New()
 	if err != nil {
 		t.Fatal(err)
